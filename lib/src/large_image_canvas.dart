@@ -36,7 +36,7 @@ class _LargeImageCanvasState extends State<LargeImageCanvas> {
     });
   }
 
-  void _handleStateChanged() {
+  void _handleStateChanged(bool isDrawing, bool isErasing) {
     setState(() {});
   }
 
@@ -69,16 +69,28 @@ class _LargeImageCanvasState extends State<LargeImageCanvas> {
       },
       onTap: () {
         if (!controller.isDrawing && !controller.isErasing) {
-          controller.selectComponent(0);
+          controller.deselectComponent();
         }
       },
       child: Stack(
         children: [
           CustomPaint(
             size: Size(double.infinity, double.infinity),
-            painter: LargeImagePainter(
-                backgroundImage: backgroundImage,
-                drawingPoints: controller.drawingPoints),
+            painter: LargeImagePainter(backgroundImage: backgroundImage, drawingPoints: controller.drawingPoints),
+          ),
+          DragTarget<Widget>(
+            onAcceptWithDetails: (details) {
+              RenderBox renderBox = context.findRenderObject() as RenderBox;
+              Offset localOffset = renderBox.globalToLocal(details.offset);
+              controller.addComponent(details.data, localOffset);
+            },
+            builder: (context, candidateData, rejectedData) {
+              return Container(
+                color: Colors.transparent,
+                width: double.infinity,
+                height: double.infinity,
+              );
+            },
           ),
           ...controller.components.asMap().entries.map((entry) {
             int index = entry.key;
@@ -88,6 +100,12 @@ class _LargeImageCanvasState extends State<LargeImageCanvas> {
               left: controller.positions[index].dx,
               top: controller.positions[index].dy,
               child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (!controller.isDrawing && !controller.isErasing) {
+                    controller.selectComponent(index);
+                  }
+                },
                 onPanUpdate: (details) {
                   if (!controller.isDrawing && !controller.isErasing) {
                     if (isSelected) {
@@ -104,28 +122,14 @@ class _LargeImageCanvasState extends State<LargeImageCanvas> {
                 child: Container(
                   decoration: isSelected
                       ? BoxDecoration(
-                    border: Border.all(color: Colors.green, width: 2),
-                  )
+                          border: Border.all(color: Colors.green, width: 2),
+                        )
                       : null,
                   child: component,
                 ),
               ),
             );
           }).toList(),
-          DragTarget<Widget>(
-            onAcceptWithDetails: (details) {
-              RenderBox renderBox = context.findRenderObject() as RenderBox;
-              Offset localOffset = renderBox.globalToLocal(details.offset);
-              controller.addComponent(details.data, localOffset);
-            },
-            builder: (context, candidateData, rejectedData) {
-              return Container(
-                color: Colors.transparent,
-                width: double.infinity,
-                height: double.infinity,
-              );
-            },
-          ),
         ],
       ),
     );

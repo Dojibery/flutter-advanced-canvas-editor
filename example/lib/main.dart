@@ -6,17 +6,43 @@ void main() {
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late CanvasController controller;
+  bool isDrawing = false;
+  bool isErasing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = CanvasController();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = CanvasController(onStateChanged: () => {});
+    controller.setOnStateChanged((isDrawing, isErasing) {
+      print('isDrawing: $isDrawing');
+      print('isErasing: $isErasing');
+      setState(() {
+        isDrawing = isDrawing;
+        isErasing = isErasing;
+      });
+    });
 
     return MaterialApp(
       home: Scaffold(
         body: SafeArea(
           child: Column(
             children: [
-              Expanded(child: Center(child: LargeImageCanvas(controller: controller))),
+              Expanded(
+                child: Center(
+                  child: LargeImageCanvas(controller: controller),
+                ),
+              ),
               CustomDraggableItems(controller: controller, items: [
                 Image.asset('assets/images/vehicle.png', width: 50, height: 50),
                 Image.asset('assets/images/vehicle.png', width: 50, height: 50),
@@ -28,13 +54,17 @@ class MyApp extends StatelessWidget {
                 IconButton(icon: Icon(Icons.delete), onPressed: controller.clearAll),
                 IconButton(
                   icon: Icon(Icons.edit),
-                  onPressed: !controller.isDrawing ? controller.enableDrawing : controller.disableDrawingErasing,
+                  onPressed: !isDrawing ? controller.enableDrawing : controller.disableDrawingErasing,
                 ),
                 IconButton(
                   icon: Icon(Icons.brush),
-                  onPressed: !controller.isErasing ? controller.enableErasing : controller.disableDrawingErasing,
+                  onPressed: !isErasing ? controller.enableErasing : controller.disableDrawingErasing,
                 ),
               ]),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text('Drawing: $isDrawing, Erasing: $isErasing'),
+              ),
             ],
           ),
         ),
@@ -51,24 +81,46 @@ class CustomDraggableItems extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 100,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: items.map((item) {
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Draggable<Widget>(
-              data: item,
-              feedback: item,
-              childWhenDragging: Opacity(
-                opacity: 0.5,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      // Disable drawing and erasing when the drag interaction starts
+      onPanStart: (onPanStart) {
+        controller.disableDrawingErasing();
+      },
+      // Disable drawing and erasing when the drag interaction ends
+      onPanEnd: (onPanEnd) {
+        controller.disableDrawingErasing();
+      },
+      child: Container(
+        height: 100,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: items.map((item) {
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Draggable<Widget>(
+                data: item,
+                feedback: item,
+                childWhenDragging: Opacity(
+                  opacity: 0.5,
+                  child: item,
+                ),
                 child: item,
+                // Disable drawing and erasing when the drag interaction starts
+                onDragStarted: () {
+                  controller.disableDrawingErasing();
+                },
+                // Optionally, you can disable drawing and erasing when the drag interaction is completed or canceled
+                onDragEnd: (details) {
+                  controller.disableDrawingErasing();
+                },
+                onDraggableCanceled: (velocity, offset) {
+                  controller.disableDrawingErasing();
+                },
               ),
-              child: item,
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

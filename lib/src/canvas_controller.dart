@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+typedef CanvasStateCallback = void Function(bool isDrawing, bool isErasing);
+
 class CanvasController {
   final List<Offset> _positions = [];
   final List<Widget> _components = [];
@@ -19,59 +21,65 @@ class CanvasController {
   bool get isDrawing => _isDrawing;
   bool get isErasing => _isErasing;
 
-  late VoidCallback onStateChanged;
+  late CanvasStateCallback onStateChanged;
 
-  CanvasController({required this.onStateChanged});
+  CanvasController();
+
+  void setOnStateChanged(CanvasStateCallback callback) {
+    onStateChanged = callback;
+  }
 
   void enableDrawing() {
     _isDrawing = true;
     _isErasing = false;
-    onStateChanged();
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void enableErasing() {
     _isDrawing = false;
     _isErasing = true;
-    onStateChanged();
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void disableDrawingErasing() {
     _isDrawing = false;
     _isErasing = false;
-    onStateChanged();
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void addDrawingPoint(Offset point) {
     _drawingPoints.add(point);
-    onStateChanged();
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void removeDrawingPoint(Offset point) {
     _drawingPoints.removeWhere((p) => (p - point).distance < 30);
-    onStateChanged();
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void addComponent(Widget component, Offset position) {
     _saveStateForUndo();
     _components.add(component);
     _positions.add(position);
-    onStateChanged();
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void updatePosition(int index, Offset position) {
     _saveStateForUndo();
     _positions[index] = position;
-    onStateChanged();
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void selectComponent(int index) {
     _selectedIndex = index;
-    onStateChanged();
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void deselectComponent() {
     _selectedIndex = -1;
-    onStateChanged();
+    _isDrawing = false;
+    _isErasing = false;
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void undo() {
@@ -83,7 +91,7 @@ class CanvasController {
       _components
         ..clear()
         ..addAll(_undoComponents.removeLast());
-      onStateChanged();
+      onStateChanged(_isDrawing, _isErasing);
     }
   }
 
@@ -96,7 +104,7 @@ class CanvasController {
       _components
         ..clear()
         ..addAll(_redoComponents.removeLast());
-      onStateChanged();
+      onStateChanged(_isDrawing, _isErasing);
     }
   }
 
@@ -105,7 +113,7 @@ class CanvasController {
     _components.clear();
     _positions.clear();
     _drawingPoints.clear();
-    onStateChanged();
+    onStateChanged(_isDrawing, _isErasing);
   }
 
   void _saveStateForUndo() {
