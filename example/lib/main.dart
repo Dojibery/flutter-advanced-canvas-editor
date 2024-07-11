@@ -1,63 +1,90 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-
-import 'package:flutter/services.dart';
-import 'package:flutter_advanced_canvas_editor/flutter_advanced_canvas_editor.dart';
+import 'package:flutter_advanced_canvas_editor/src/canvas_controller.dart';
+import 'package:flutter_advanced_canvas_editor/src/large_image_canvas.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-
+class MyApp extends StatelessWidget {
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    final controller = CanvasController(onStateChanged: () => {});
+
+    return MaterialApp(
+      home: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(child: Center(child: LargeImageCanvas(controller: controller))),
+              CustomDraggableItems(controller: controller, items: [
+                Image.asset('assets/images/vehicle.png', width: 50, height: 50),
+                Image.asset('assets/images/vehicle.png', width: 50, height: 50),
+                // Add more items here
+              ]),
+              CustomActionButtons(controller: controller, buttons: [
+                IconButton(icon: Icon(Icons.undo), onPressed: controller.undo),
+                IconButton(icon: Icon(Icons.redo), onPressed: controller.redo),
+                IconButton(icon: Icon(Icons.delete), onPressed: controller.clearAll),
+                IconButton(
+                  icon: Icon(Icons.edit),
+                  onPressed: !controller.isDrawing ? controller.enableDrawing : controller.disableDrawingErasing,
+                ),
+                IconButton(
+                  icon: Icon(Icons.brush),
+                  onPressed: !controller.isErasing ? controller.enableErasing : controller.disableDrawingErasing,
+                ),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-  final _flutterAdvancedCanvasEditorPlugin = FlutterAdvancedCanvasEditor();
+class CustomDraggableItems extends StatelessWidget {
+  final CanvasController controller;
+  final List<Widget> items;
 
-  @override
-  void initState() {
-    super.initState();
-    initPlatformState();
-  }
-
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // We also handle the message potentially returning null.
-    try {
-      platformVersion =
-          await _flutterAdvancedCanvasEditorPlugin.getPlatformVersion() ?? 'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
-  }
+  CustomDraggableItems({required this.controller, required this.items});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
-        ),
+    return Container(
+      height: 100,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: items.map((item) {
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Draggable<Widget>(
+              data: item,
+              feedback: item,
+              childWhenDragging: Opacity(
+                opacity: 0.5,
+                child: item,
+              ),
+              child: item,
+            ),
+          );
+        }).toList(),
       ),
+    );
+  }
+}
+
+class CustomActionButtons extends StatelessWidget {
+  final CanvasController controller;
+  final List<Widget> buttons;
+
+  CustomActionButtons({required this.controller, required this.buttons});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: buttons,
     );
   }
 }
