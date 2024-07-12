@@ -1,16 +1,17 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
-class LargeImagePainter extends CustomPainter {
+class Painter extends CustomPainter {
   final List<Offset> drawingPoints;
   final ui.Image? backgroundImage;
+  final Color? backgroundColor;
 
-  LargeImagePainter({required this.drawingPoints, this.backgroundImage});
+  Painter({this.backgroundColor, required this.drawingPoints, this.backgroundImage});
 
   @override
   void paint(Canvas canvas, Size size) {
     // Draw the large image here
-    final paint = Paint()..color = Colors.grey;
+    final paint = Paint()..color = this.backgroundColor != null ? this.backgroundColor as Color: Colors.grey;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
 
     // Draw the background image if it's loaded

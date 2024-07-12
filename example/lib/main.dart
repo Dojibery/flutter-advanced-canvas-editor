@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_advanced_canvas_editor/src/canvas_controller.dart';
-import 'package:flutter_advanced_canvas_editor/src/large_image_canvas.dart';
+import 'package:flutter_advanced_canvas_editor/src/canvas.dart';
 
 void main() {
   runApp(MyApp());
@@ -19,7 +19,9 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    controller = CanvasController();
+    controller = CanvasController((pngBytes) {
+      print('PNG bytes exporting canvas: $pngBytes');
+    });
   }
 
   @override
@@ -40,7 +42,7 @@ class _MyAppState extends State<MyApp> {
             children: [
               Expanded(
                 child: Center(
-                  child: LargeImageCanvas(controller: controller),
+                  child: CanvasWidget(controller: controller, backgroundImage: 'assets/images/background.png',),
                 ),
               ),
               CustomDraggableItems(controller: controller, items: [
@@ -60,6 +62,7 @@ class _MyAppState extends State<MyApp> {
                   icon: Icon(Icons.brush),
                   onPressed: !isErasing ? controller.enableErasing : controller.disableDrawingErasing,
                 ),
+                IconButton(icon: Icon(Icons.save), onPressed: controller.exportCanvas),
               ]),
               Padding(
                 padding: const EdgeInsets.all(8.0),

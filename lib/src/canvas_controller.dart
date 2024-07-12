@@ -1,6 +1,11 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 typedef CanvasStateCallback = void Function(bool isDrawing, bool isErasing);
+typedef CanvasExportCallback = void Function(Uint8List pngBytes);
 
 class CanvasController {
   final List<Offset> _positions = [];
@@ -14,6 +19,7 @@ class CanvasController {
   bool _isDrawing = false;
   bool _isErasing = false;
   final List<double> _rotations = []; // To keep track of the rotations of each component
+  final GlobalKey _canvasKey = GlobalKey();
 
   List<Offset> get positions => List.unmodifiable(_positions);
   List<Widget> get components => List.unmodifiable(_components);
@@ -22,10 +28,12 @@ class CanvasController {
   bool get isDrawing => _isDrawing;
   bool get isErasing => _isErasing;
   List<double> get rotations => List.unmodifiable(_rotations);
+  GlobalKey get canvasKey => _canvasKey;
 
   late CanvasStateCallback onStateChanged;
+  late CanvasExportCallback exportCanvasCallback;
 
-  CanvasController();
+  CanvasController(this.exportCanvasCallback);
 
   void setOnStateChanged(CanvasStateCallback callback) {
     onStateChanged = callback;
@@ -141,5 +149,20 @@ class CanvasController {
   void _saveStateForRedo() {
     _redoPositions.add(List.from(_positions));
     _redoComponents.add(List.from(_components));
+  }
+
+  Future<void> exportCanvas() async {
+    // first deselect all items because the picture will contains unnecessary thinks such as rotator, delete icon etc...
+    deselectComponent();
+    try {
+      RenderRepaintBoundary boundary = _canvasKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage();
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+
+      exportCanvasCallback(pngBytes);
+    } catch (e) {
+      print('Error exporting canvas: $e');
+    }
   }
 }
