@@ -119,19 +119,50 @@ class _LargeImageCanvasState extends State<LargeImageCanvas> {
                     }
                   }
                 },
-                child: Container(
-                  decoration: isSelected
-                      ? BoxDecoration(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Transform.rotate(
+                      angle: controller.rotations[index] * (3.14159265359 / 180),
+                      child: Container(
+                        decoration: isSelected
+                            ? BoxDecoration(
                           border: Border.all(color: Colors.green, width: 2),
                         )
-                      : null,
-                  child: component,
+                            : null,
+                        child: component,
+                      ),
+                    ),
+                    if (isSelected)
+                      Positioned(
+                        right: -15,  // Adjust as needed
+                        top: -15,  // Adjust as needed
+                        child: IconButton(
+                          icon: Icon(Icons.rotate_right),
+                          onPressed: () {
+                            controller.rotateComponent(index);
+                          },
+                        ),
+                      ),
+                    if (isSelected)
+                      Positioned(
+                        left: -15,  // Adjust as needed
+                        bottom: -15,  // Adjust as needed
+                        child: IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () {
+                            controller.deleteComponent(index);
+                          },
+                        ),
+                      ),
+                  ],
                 ),
               ),
             );
           }).toList(),
         ],
-      ),
+      )
+
     );
   }
 }

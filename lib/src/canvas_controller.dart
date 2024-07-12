@@ -13,6 +13,7 @@ class CanvasController {
   int _selectedIndex = -1;
   bool _isDrawing = false;
   bool _isErasing = false;
+  final List<double> _rotations = []; // To keep track of the rotations of each component
 
   List<Offset> get positions => List.unmodifiable(_positions);
   List<Widget> get components => List.unmodifiable(_components);
@@ -20,6 +21,7 @@ class CanvasController {
   int get selectedIndex => _selectedIndex;
   bool get isDrawing => _isDrawing;
   bool get isErasing => _isErasing;
+  List<double> get rotations => List.unmodifiable(_rotations);
 
   late CanvasStateCallback onStateChanged;
 
@@ -61,6 +63,7 @@ class CanvasController {
     _saveStateForUndo();
     _components.add(component);
     _positions.add(position);
+    _rotations.add(0.0);
     onStateChanged(_isDrawing, _isErasing);
   }
 
@@ -79,6 +82,20 @@ class CanvasController {
     _selectedIndex = -1;
     _isDrawing = false;
     _isErasing = false;
+    onStateChanged(_isDrawing, _isErasing);
+  }
+
+  void deleteComponent(int index) {
+    _saveStateForUndo();
+    _components.removeAt(index);
+    _positions.removeAt(index);
+    _rotations.removeAt(index);
+    onStateChanged(_isDrawing, _isErasing);
+  }
+
+  void rotateComponent(int index) {
+    _saveStateForUndo();
+    _rotations[index] = (_rotations[index] + 45.0) % 360;
     onStateChanged(_isDrawing, _isErasing);
   }
 
