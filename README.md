@@ -76,6 +76,10 @@ void initState() {
 }
 ```
 
+## Result
+
+![Result](assets/images/result.png)
+
 ## Contributing
 
 Contributions are welcome! Feel free to open issues and pull requests to suggest new features, report bugs, or improve the codebase.
