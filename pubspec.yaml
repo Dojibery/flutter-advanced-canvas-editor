@@ -76,3 +76,6 @@ flutter:
   #
   # For details regarding fonts in packages, see
   # https://flutter.dev/custom-fonts/#from-packages
+
+repository: https://github.com/Dojibery/flutter-advanced-canvas-editor
+issue_tracker: https://github.com/Dojibery/flutter-advanced-canvas-editor/issues
