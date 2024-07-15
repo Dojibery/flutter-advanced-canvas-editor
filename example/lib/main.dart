@@ -56,10 +56,12 @@ class _MyAppState extends State<MyApp> {
                 IconButton(icon: Icon(Icons.delete), onPressed: controller.clearAll),
                 IconButton(
                   icon: Icon(Icons.edit),
+                  color: !controller.isDrawing ? Colors.black : Colors.red,
                   onPressed: !controller.isDrawing ? controller.enableDrawing : controller.disableDrawingErasing,
                 ),
                 IconButton(
                   icon: Icon(Icons.brush),
+                  color: !controller.isErasing ? Colors.black : Colors.red,
                   onPressed: !controller.isErasing ? controller.enableErasing : controller.disableDrawingErasing,
                 ),
                 IconButton(icon: Icon(Icons.save), onPressed: controller.exportCanvas),
