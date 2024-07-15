@@ -1,3 +1,3 @@
-## 1.0.1
+## 1.0.2
 
 * TODO: export in different formats and colors
