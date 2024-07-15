@@ -2,6 +2,10 @@
 
 A Flutter package for creating, editing, and exporting canvas-based artwork with advanced features.
 
+## Preview
+
+![Result](assets/images/result.png)
+
 ## Features
 
 * Draw, rotate, and delete components on a canvas.
@@ -75,10 +79,6 @@ void initState() {
   });
 }
 ```
-
-## Result
-
-![Result](assets/images/result.png)
 
 ## Contributing
 
