@@ -6,15 +6,13 @@ class Painter extends CustomPainter {
   final ui.Image? backgroundImage;
   final Color? backgroundColor;
 
-  Painter({this.backgroundColor, required this.drawingPoints, this.backgroundImage});
+  Painter({this.backgroundColor, required this.drawingPoints, this.backgroundImage}) {}
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw the large image here
-    final paint = Paint()..color = this.backgroundColor != null ? this.backgroundColor as Color: Colors.grey;
+    final paint = Paint()..color = this.backgroundColor != null ? this.backgroundColor! : Colors.grey;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
 
-    // Draw the background image if it's loaded
     if (backgroundImage != null) {
       canvas.drawImageRect(
         backgroundImage!,
@@ -24,7 +22,6 @@ class Painter extends CustomPainter {
       );
     }
 
-    // Draw unconnected points
     final pointPaint = Paint()
       ..color = Colors.black
       ..strokeCap = StrokeCap.round

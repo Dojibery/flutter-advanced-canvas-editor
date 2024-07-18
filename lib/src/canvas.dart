@@ -48,137 +48,127 @@ class _CanvasWidgetState extends State<CanvasWidget> {
     final controller = widget.controller;
 
     return GestureDetector(
-        onTap: () {
-          if (!controller.isDrawing && !controller.isErasing) {
-            controller.deselectComponent();
-          }
-        },
-        child: RepaintBoundary(
-            key: controller.canvasKey,
-            child: Stack(
-              children: [
-                CustomPaint(
-                  size: Size(double.infinity, double.infinity),
-                  painter: Painter(backgroundColor: backgroundColor, backgroundImage: backgroundImage, drawingPoints: controller.drawingPoints),
-                ),
-                DragTarget<Widget>(
-                  onAcceptWithDetails: (details) {
-                    RenderBox renderBox = context.findRenderObject() as RenderBox;
-                    Offset localOffset = renderBox.globalToLocal(details.offset);
-                    controller.addComponent(details.data, localOffset);
-                  },
-                  builder: (context, candidateData, rejectedData) {
-                    return Container(
-                      color: Colors.transparent,
-                      width: double.infinity,
-                      height: double.infinity,
-                    );
-                  },
-                ),
-                GestureDetector(
-                  onPanStart: (details) {
-                    RenderBox renderBox = context.findRenderObject() as RenderBox;
-                    Offset localPosition = renderBox.globalToLocal(details.localPosition);
-                    if (controller.isDrawing) {
-                      if (_isInsideCanvas(localPosition, renderBox.size)) {
-                        controller.addDrawingPoint(localPosition);
-                      }
-                    } else if (controller.isErasing) {
+      onTap: () {
+        if (!controller.isDrawing && !controller.isErasing) {
+          controller.deselectComponent();
+        }
+      },
+      child: RepaintBoundary(
+          key: controller.canvasKey,
+          child: Positioned.fill(
+              child: CustomPaint(
+                            painter: Painter(backgroundColor: backgroundColor, backgroundImage: backgroundImage, drawingPoints: controller.drawingPoints),
+                            child: GestureDetector(
+                onPanStart: (details) {
+                  _handlePan(details.localPosition, controller);
+                },
+                onPanUpdate: (details) {
+                  _handlePan(details.localPosition, controller);
+                },
+                child: Stack(children: [
+                  DragTarget<Widget>(
+                    onAcceptWithDetails: (details) {
                       RenderBox renderBox = context.findRenderObject() as RenderBox;
-                      Offset localOffset = renderBox.globalToLocal(details.localPosition);
-                      if (_isInsideCanvas(localPosition, renderBox.size)) {
-                        controller.removeDrawingPoint(localOffset);
-                      }
-                    }
-                  },
-                  onPanUpdate: (details) {
-                    RenderBox renderBox = context.findRenderObject() as RenderBox;
-                    Offset localPosition = renderBox.globalToLocal(details.localPosition);
-                    if (controller.isDrawing) {
-                      if (_isInsideCanvas(localPosition, renderBox.size)) {
-                        controller.addDrawingPoint(localPosition);
-                      }
-                    } else if (controller.isErasing) {
-                      RenderBox renderBox = context.findRenderObject() as RenderBox;
-                      Offset localOffset = renderBox.globalToLocal(details.localPosition);
-                      if (_isInsideCanvas(localPosition, renderBox.size)) {
-                        controller.removeDrawingPoint(localOffset);
-                      }
-                    }
-                  },
-                ),
-                ...controller.components.asMap().entries.map((entry) {
-                  int index = entry.key;
-                  Widget component = entry.value;
-                  bool isSelected = controller.selectedIndex == index;
-                  return Positioned(
-                    left: controller.positions[index].dx,
-                    top: controller.positions[index].dy,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: () {
-                        if (!controller.isDrawing && !controller.isErasing) {
-                          controller.selectComponent(index);
-                        }
-                      },
-                      onPanUpdate: (details) {
-                        if (!controller.isDrawing && !controller.isErasing) {
-                          if (isSelected) {
-                            controller.updatePosition(
-                              index,
-                              Offset(
-                                controller.positions[index].dx + details.delta.dx,
-                                controller.positions[index].dy + details.delta.dy,
-                              ),
-                            );
+                      Offset localOffset = renderBox.globalToLocal(details.offset);
+                      controller.addComponent(details.data, localOffset);
+                    },
+                    builder: (context, candidateData, rejectedData) {
+                      return Container(
+                        color: Colors.transparent,
+                        width: double.infinity,
+                        height: double.infinity,
+                      );
+                    },
+                  ),
+                  ...controller.components.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    Widget component = entry.value;
+                    bool isSelected = controller.selectedIndex == index;
+                    return Positioned(
+                      left: controller.positions[index].dx,
+                      top: controller.positions[index].dy,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          if (!controller.isDrawing && !controller.isErasing) {
+                            controller.selectComponent(index);
                           }
-                        }
-                      },
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Transform.rotate(
-                            angle: controller.rotations[index] * (3.14159265359 / 180),
-                            child: Container(
-                              decoration: isSelected
-                                  ? BoxDecoration(
-                                      border: Border.all(color: Colors.green, width: 2),
-                                    )
-                                  : null,
-                              child: component,
+                        },
+                        onPanUpdate: (details) {
+                          if (!controller.isDrawing && !controller.isErasing) {
+                            if (isSelected) {
+                              controller.updatePosition(
+                                index,
+                                Offset(
+                                  controller.positions[index].dx + details.delta.dx,
+                                  controller.positions[index].dy + details.delta.dy,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Transform.rotate(
+                              angle: controller.rotations[index] * (3.14159265359 / 180),
+                              child: Container(
+                                decoration: isSelected
+                                    ? BoxDecoration(
+                                  border: Border.all(color: Colors.green, width: 2),
+                                )
+                                    : null,
+                                child: component,
+                              ),
+                            ),
+                            if (isSelected)
+                              Positioned(
+                                right: -15, // Adjust as needed
+                                top: -15, // Adjust as needed
+                                child: IconButton(
+                                  color: Colors.black,
+                                  icon: Icon(Icons.rotate_right),
+                                  onPressed: () {
+                                    controller.rotateComponent(index);
+                                  },
+                                ),
+                              ),
+                            if (isSelected)
+                              Positioned(
+                                left: -15, // Adjust as needed
+                                bottom: -15, // Adjust as needed
+                                child: IconButton(
+                                  color: Colors.black,
+                                  icon: Icon(Icons.delete),
+                                  onPressed: () {
+                                    controller.deleteComponent(index);
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ]),
                             ),
                           ),
-                          if (isSelected)
-                            Positioned(
-                              right: -15, // Adjust as needed
-                              top: -15, // Adjust as needed
-                              child: IconButton(
-                                color: Colors.black,
-                                icon: Icon(Icons.rotate_right),
-                                onPressed: () {
-                                  controller.rotateComponent(index);
-                                },
-                              ),
-                            ),
-                          if (isSelected)
-                            Positioned(
-                              left: -15, // Adjust as needed
-                              bottom: -15, // Adjust as needed
-                              child: IconButton(
-                                color: Colors.black,
-                                icon: Icon(Icons.delete),
-                                onPressed: () {
-                                  controller.deleteComponent(index);
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ],
-            )));
+              )),
+    );
+  }
+
+  void _handlePan(Offset localPosition, CanvasController controller) {
+    RenderBox renderBox = context.findRenderObject() as RenderBox;
+    Offset localOffset = renderBox.globalToLocal(localPosition);
+    if (controller.isDrawing) {
+      if (_isInsideCanvas(localOffset, renderBox.size)) {
+        controller.addDrawingPoint(localOffset);
+      }
+    } else if (controller.isErasing) {
+      if (_isInsideCanvas(localOffset, renderBox.size)) {
+        controller.removeDrawingPoint(localOffset);
+      }
+    }
   }
 
   bool _isInsideCanvas(Offset position, Size canvasSize) {
