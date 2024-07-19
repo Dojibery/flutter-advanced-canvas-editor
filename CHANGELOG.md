@@ -1,9 +1,6 @@
-## 1.0.3
+## 1.0.4
 
 CHANGELOG:
-- fixed erasing & drawing
-- added active/inactive state of pan and brush
-- added a preview image
-- added metadata
+- Fixed pan drawing outside a container 
 
 * TODO: export in different formats and colors
