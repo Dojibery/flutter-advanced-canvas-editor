@@ -77,34 +77,10 @@ class _CanvasWidgetState extends State<CanvasWidget> {
                 ),
                 GestureDetector(
                   onPanStart: (details) {
-                    RenderBox renderBox = context.findRenderObject() as RenderBox;
-                    Offset localPosition = renderBox.globalToLocal(details.localPosition);
-                    if (controller.isDrawing) {
-                      if (_isInsideCanvas(localPosition, renderBox.size)) {
-                        controller.addDrawingPoint(localPosition);
-                      }
-                    } else if (controller.isErasing) {
-                      RenderBox renderBox = context.findRenderObject() as RenderBox;
-                      Offset localOffset = renderBox.globalToLocal(details.localPosition);
-                      if (_isInsideCanvas(localPosition, renderBox.size)) {
-                        controller.removeDrawingPoint(localOffset);
-                      }
-                    }
+                    _handlePan(details.localPosition, controller);
                   },
                   onPanUpdate: (details) {
-                    RenderBox renderBox = context.findRenderObject() as RenderBox;
-                    Offset localPosition = renderBox.globalToLocal(details.localPosition);
-                    if (controller.isDrawing) {
-                      if (_isInsideCanvas(localPosition, renderBox.size)) {
-                        controller.addDrawingPoint(localPosition);
-                      }
-                    } else if (controller.isErasing) {
-                      RenderBox renderBox = context.findRenderObject() as RenderBox;
-                      Offset localOffset = renderBox.globalToLocal(details.localPosition);
-                      if (_isInsideCanvas(localPosition, renderBox.size)) {
-                        controller.removeDrawingPoint(localOffset);
-                      }
-                    }
+                    _handlePan(details.localPosition, controller);
                   },
                 ),
                 ...controller.components.asMap().entries.map((entry) {
@@ -179,6 +155,19 @@ class _CanvasWidgetState extends State<CanvasWidget> {
                 }).toList(),
               ],
             )));
+  }
+
+  void _handlePan(Offset localPosition, CanvasController controller) {
+    RenderBox renderBox = context.findRenderObject() as RenderBox;
+    if (controller.isDrawing) {
+      if (_isInsideCanvas(localPosition, renderBox.size)) {
+        controller.addDrawingPoint(localPosition);
+      }
+    } else if (controller.isErasing) {
+      if (_isInsideCanvas(localPosition, renderBox.size)) {
+        controller.removeDrawingPoint(localPosition);
+      }
+    }
   }
 
   bool _isInsideCanvas(Offset position, Size canvasSize) {
