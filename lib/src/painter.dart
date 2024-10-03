@@ -25,7 +25,7 @@ class Painter extends CustomPainter {
     final pointPaint = Paint()
       ..color = Colors.black
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 3.0;
+      ..strokeWidth = 1.5;
 
     for (Offset point in drawingPoints) {
       canvas.drawCircle(point, 5.0, pointPaint);
