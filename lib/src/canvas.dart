@@ -10,8 +10,15 @@ class CanvasWidget extends StatefulWidget {
   final String? backgroundImage; // e.g. 'assets/images/road.png'
   final Color? backgroundColor;
   final CanvasController controller;
+  final double? iconsSize;
 
-  const CanvasWidget({Key? key, this.backgroundColor, this.backgroundImage, required this.controller}) : super(key: key);
+  const CanvasWidget(
+      {Key? key,
+      this.backgroundColor,
+      this.backgroundImage,
+      this.iconsSize = 30.0,
+      required this.controller})
+      : super(key: key);
 
   @override
   _CanvasWidgetState createState() => _CanvasWidgetState();
@@ -32,7 +39,8 @@ class _CanvasWidgetState extends State<CanvasWidget> {
 
   Future<void> _loadImage(String asset) async {
     final ByteData data = await rootBundle.load(asset);
-    final ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final ui.Codec codec =
+        await ui.instantiateImageCodec(data.buffer.asUint8List());
     final ui.FrameInfo frameInfo = await codec.getNextFrame();
     setState(() {
       backgroundImage = frameInfo.image;
@@ -46,6 +54,7 @@ class _CanvasWidgetState extends State<CanvasWidget> {
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
+    final iconsSize = widget.iconsSize;
 
     return GestureDetector(
         onTap: () {
@@ -59,12 +68,17 @@ class _CanvasWidgetState extends State<CanvasWidget> {
               children: [
                 CustomPaint(
                   size: Size(double.infinity, double.infinity),
-                  painter: Painter(backgroundColor: backgroundColor, backgroundImage: backgroundImage, drawingPoints: controller.drawingPoints),
+                  painter: Painter(
+                      backgroundColor: backgroundColor,
+                      backgroundImage: backgroundImage,
+                      drawingPoints: controller.drawingPoints),
                 ),
                 DragTarget<Widget>(
                   onAcceptWithDetails: (details) {
-                    RenderBox renderBox = context.findRenderObject() as RenderBox;
-                    Offset localOffset = renderBox.globalToLocal(details.offset);
+                    RenderBox renderBox =
+                        context.findRenderObject() as RenderBox;
+                    Offset localOffset =
+                        renderBox.globalToLocal(details.offset);
                     controller.addComponent(details.data, localOffset);
                   },
                   builder: (context, candidateData, rejectedData) {
@@ -87,71 +101,90 @@ class _CanvasWidgetState extends State<CanvasWidget> {
                   int index = entry.key;
                   Widget component = entry.value;
                   bool isSelected = controller.selectedIndex == index;
-                  return Positioned(
-                    left: controller.positions[index].dx,
-                    top: controller.positions[index].dy,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: () {
-                        if (!controller.isDrawing && !controller.isErasing) {
-                          controller.selectComponent(index);
-                        }
-                      },
-                      onPanUpdate: (details) {
-                        if (!controller.isDrawing && !controller.isErasing) {
-                          if (isSelected) {
-                            controller.updatePosition(
-                              index,
-                              Offset(
-                                controller.positions[index].dx + details.delta.dx,
-                                controller.positions[index].dy + details.delta.dy,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Transform.rotate(
-                            angle: controller.rotations[index] * (3.14159265359 / 180),
-                            child: Container(
-                              decoration: isSelected
-                                  ? BoxDecoration(
-                                      border: Border.all(color: Colors.green, width: 2),
-                                    )
-                                  : null,
-                              child: component,
-                            ),
+                  double? imageWidth = 50;
+                  double? imageHeight = 50;
+                  if (component is Image) {
+                    imageWidth = component.width;
+                    imageHeight = component.height;
+                  }
+
+                  return Stack(children: [
+                    if (isSelected)
+                      Positioned(
+                        left: controller.positions[index].dx + imageWidth!,
+                        top: controller.positions[index].dy - 30,
+                        child: IconButton(
+                          color: Colors.black,
+                          icon: Icon(
+                            Icons.rotate_right,
+                            size: iconsSize,
                           ),
-                          if (isSelected)
-                            Positioned(
-                              right: -15, // Adjust as needed
-                              top: -15, // Adjust as needed
-                              child: IconButton(
-                                color: Colors.black,
-                                icon: Icon(Icons.rotate_right),
-                                onPressed: () {
-                                  controller.rotateComponent(index);
-                                },
+                          onPressed: () {
+                            controller.rotateComponent(index);
+                          },
+                        ),
+                      ),
+                    if (isSelected)
+                      Positioned(
+                        left: controller.positions[index].dx - 30,
+                        top: controller.positions[index].dy + imageHeight!,
+                        child: IconButton(
+                          color: Colors.black,
+                          icon: Icon(
+                            Icons.delete,
+                            size: iconsSize,
+                          ),
+                          onPressed: () {
+                            controller.deleteComponent(index);
+                          },
+                        ),
+                      ),
+                    Positioned(
+                      left: controller.positions[index].dx,
+                      top: controller.positions[index].dy,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          if (!controller.isDrawing && !controller.isErasing) {
+                            controller.selectComponent(index);
+                          }
+                        },
+                        onPanUpdate: (details) {
+                          if (!controller.isDrawing && !controller.isErasing) {
+                            if (isSelected) {
+                              controller.updatePosition(
+                                index,
+                                Offset(
+                                  controller.positions[index].dx +
+                                      details.delta.dx,
+                                  controller.positions[index].dy +
+                                      details.delta.dy,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Transform.rotate(
+                              angle: controller.rotations[index] *
+                                  (3.14159265359 / 180),
+                              child: Container(
+                                decoration: isSelected
+                                    ? BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.green, width: 2),
+                                      )
+                                    : null,
+                                child: component,
                               ),
                             ),
-                          if (isSelected)
-                            Positioned(
-                              left: -15, // Adjust as needed
-                              bottom: -15, // Adjust as needed
-                              child: IconButton(
-                                color: Colors.black,
-                                icon: Icon(Icons.delete),
-                                onPressed: () {
-                                  controller.deleteComponent(index);
-                                },
-                              ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  );
+                  ]);
                 }).toList(),
               ],
             )));
@@ -171,6 +204,9 @@ class _CanvasWidgetState extends State<CanvasWidget> {
   }
 
   bool _isInsideCanvas(Offset position, Size canvasSize) {
-    return position.dx >= 0 && position.dx <= canvasSize.width && position.dy >= 0 && position.dy <= canvasSize.height;
+    return position.dx >= 0 &&
+        position.dx <= canvasSize.width &&
+        position.dy >= 0 &&
+        position.dy <= canvasSize.height;
   }
 }

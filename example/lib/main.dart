@@ -42,7 +42,7 @@ class _MyAppState extends State<MyApp> {
             children: [
               Expanded(
                 child: Center(
-                  child: CanvasWidget(controller: controller, backgroundImage: 'assets/images/background.png',),
+                  child: CanvasWidget(controller: controller, backgroundImage: 'assets/images/background.png', iconsSize: 25.0,),
                 ),
               ),
               CustomDraggableItems(controller: controller, items: [
