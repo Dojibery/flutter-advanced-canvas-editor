@@ -1,6 +1,6 @@
-## 1.0.4
+## 1.0.5
 
 CHANGELOG:
-- Fixed pan drawing outside a container 
+- adjustment of the dots size
 
 * TODO: export in different formats and colors
