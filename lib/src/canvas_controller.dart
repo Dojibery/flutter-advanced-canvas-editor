@@ -6,6 +6,9 @@ import 'package:flutter/rendering.dart';
 
 typedef CanvasStateCallback = void Function(bool isDrawing, bool isErasing);
 typedef CanvasExportCallback = void Function(Uint8List pngBytes);
+typedef UndoCallback = void Function();
+typedef RedoCallback = void Function();
+typedef EraseCallback = void Function();
 
 class CanvasController {
   final List<Offset> _positions = [];
@@ -32,8 +35,11 @@ class CanvasController {
 
   late CanvasStateCallback onStateChanged;
   late CanvasExportCallback exportCanvasCallback;
+  UndoCallback? onUndo;
+  RedoCallback? onRedo;
+  EraseCallback? onErase;
 
-  CanvasController(this.exportCanvasCallback);
+  CanvasController(this.exportCanvasCallback, {this.onUndo, this.onRedo, this.onErase});
 
   void setOnStateChanged(CanvasStateCallback callback) {
     onStateChanged = callback;
@@ -49,6 +55,7 @@ class CanvasController {
     _isDrawing = false;
     _isErasing = true;
     onStateChanged(_isDrawing, _isErasing);
+    onErase?.call();
   }
 
   void disableDrawingErasing() {
@@ -117,6 +124,7 @@ class CanvasController {
         ..clear()
         ..addAll(_undoComponents.removeLast());
       onStateChanged(_isDrawing, _isErasing);
+      onUndo?.call();
     }
   }
 
@@ -130,6 +138,7 @@ class CanvasController {
         ..clear()
         ..addAll(_redoComponents.removeLast());
       onStateChanged(_isDrawing, _isErasing);
+      onRedo?.call();
     }
   }
 

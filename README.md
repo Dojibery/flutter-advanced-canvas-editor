@@ -42,9 +42,20 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    controller = CanvasController((pngBytes) {
-      print('PNG bytes exporting canvas: $pngBytes');
-    });
+    controller = CanvasController(
+      (pngBytes) {
+        print('PNG bytes exporting canvas: $pngBytes');
+      },
+      onUndo: () {
+        print('Undo action triggered - validation flags reset');
+      },
+      onRedo: () {
+        print('Redo action triggered - validation flags reset');
+      },
+      onErase: () {
+        print('Erase mode enabled - validation flags reset');
+      },
+    );
   }
 
   @override
@@ -56,7 +67,8 @@ class _MyAppState extends State<MyApp> {
                     children: [
                       Expanded(
                         child: Center(
-                          child: CanvasWidget(controller: controller, backgroundImage: 'assets/images/background.png',),
+                          child: CanvasWidget(controller: controller,
+                            backgroundImage: 'assets/images/background.png',),
                         ),
                       ),
                     ])))
