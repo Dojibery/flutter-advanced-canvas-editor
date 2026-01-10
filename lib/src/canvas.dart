@@ -34,7 +34,9 @@ class _CanvasWidgetState extends State<CanvasWidget> {
     if (widget.backgroundImage != null) {
       _loadImage(widget.backgroundImage!);
     }
-    widget.controller.onStateChanged = _handleStateChanged;
+    // NOTE: We deliberately DON'T set onStateChanged here because it would
+    // overwrite the callback set by the parent widget. The parent's rebuild
+    // will automatically cascade to this widget, so we don't need our own callback.
   }
 
   Future<void> _loadImage(String asset) async {
@@ -71,7 +73,7 @@ class _CanvasWidgetState extends State<CanvasWidget> {
                   painter: Painter(
                       backgroundColor: backgroundColor,
                       backgroundImage: backgroundImage,
-                      drawingPoints: controller.drawingPoints),
+                      layers: controller.layers),
                 ),
                 DragTarget<Widget>(
                   onAcceptWithDetails: (details) {
@@ -97,97 +99,126 @@ class _CanvasWidgetState extends State<CanvasWidget> {
                     _handlePan(details.localPosition, controller);
                   },
                 ),
-                ...controller.components.asMap().entries.map((entry) {
-                  int index = entry.key;
-                  Widget component = entry.value;
-                  bool isSelected = controller.selectedIndex == index;
-                  double? imageWidth = 50;
-                  double? imageHeight = 50;
-                  if (component is Image) {
-                    imageWidth = component.width;
-                    imageHeight = component.height;
-                  }
-
-                  return Stack(children: [
-                    if (isSelected)
-                      Positioned(
-                        left: controller.positions[index].dx + imageWidth!,
-                        top: controller.positions[index].dy - 30,
-                        child: IconButton(
-                          color: Colors.black,
-                          icon: Icon(
-                            Icons.rotate_right,
-                            size: iconsSize,
-                          ),
-                          onPressed: () {
-                            controller.rotateComponent(index);
-                          },
-                        ),
-                      ),
-                    if (isSelected)
-                      Positioned(
-                        left: controller.positions[index].dx - 30,
-                        top: controller.positions[index].dy + imageHeight!,
-                        child: IconButton(
-                          color: Colors.black,
-                          icon: Icon(
-                            Icons.delete,
-                            size: iconsSize,
-                          ),
-                          onPressed: () {
-                            controller.deleteComponent(index);
-                          },
-                        ),
-                      ),
-                    Positioned(
-                      left: controller.positions[index].dx,
-                      top: controller.positions[index].dy,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTap: () {
-                          if (!controller.isDrawing && !controller.isErasing) {
-                            controller.selectComponent(index);
-                          }
-                        },
-                        onPanUpdate: (details) {
-                          if (!controller.isDrawing && !controller.isErasing) {
-                            if (isSelected) {
-                              controller.updatePosition(
-                                index,
-                                Offset(
-                                  controller.positions[index].dx +
-                                      details.delta.dx,
-                                  controller.positions[index].dy +
-                                      details.delta.dy,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Transform.rotate(
-                              angle: controller.rotations[index] *
-                                  (3.14159265359 / 180),
-                              child: Container(
-                                decoration: isSelected
-                                    ? BoxDecoration(
-                                        border: Border.all(
-                                            color: Colors.green, width: 2),
-                                      )
-                                    : null,
-                                child: component,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ]);
-                }).toList(),
+                // Render all layers
+                ..._buildLayerWidgets(controller, iconsSize),
               ],
             )));
+  }
+
+  /// Builds widgets for all visible layers
+  List<Widget> _buildLayerWidgets(CanvasController controller, double? iconsSize) {
+    final layers = controller.layers;
+    List<Widget> layerWidgets = [];
+
+    // Iterate through layers (bottom to top for correct z-order)
+    for (int layerIndex = 0; layerIndex < layers.length; layerIndex++) {
+      final layer = layers[layerIndex];
+
+      // Skip hidden layers completely
+      if (!layer.visible) continue;
+
+      // Render each component in this layer
+      for (int compIndex = 0; compIndex < layer.components.length; compIndex++) {
+        final component = layer.components[compIndex];
+        final position = layer.positions[compIndex];
+        final rotation = layer.rotations[compIndex];
+
+        final isSelected = controller.selectedLayerIndex == layerIndex &&
+            controller.selectedIndex == compIndex;
+
+        double? imageWidth = 50;
+        double? imageHeight = 50;
+        if (component is Image) {
+          imageWidth = component.width;
+          imageHeight = component.height;
+        }
+
+        Widget componentWidget = Stack(
+          children: [
+            // Rotate button (only if selected and layer not locked)
+            if (isSelected && !layer.locked)
+              Positioned(
+                left: position.dx + imageWidth!,
+                top: position.dy - 30,
+                child: IconButton(
+                  color: Colors.black,
+                  icon: Icon(Icons.rotate_right, size: iconsSize),
+                  onPressed: () {
+                    controller.rotateComponent(compIndex, targetLayerIndex: layerIndex);
+                  },
+                ),
+              ),
+
+            // Delete button (only if selected and layer not locked)
+            if (isSelected && !layer.locked)
+              Positioned(
+                left: position.dx - 30,
+                top: position.dy + imageHeight!,
+                child: IconButton(
+                  color: Colors.black,
+                  icon: Icon(Icons.delete, size: iconsSize),
+                  onPressed: () {
+                    controller.deleteComponent(compIndex, targetLayerIndex: layerIndex);
+                  },
+                ),
+              ),
+
+            // The component itself
+            Positioned(
+              left: position.dx,
+              top: position.dy,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  if (!controller.isDrawing && !controller.isErasing) {
+                    // Pass layer index to selection
+                    controller.selectComponent(layerIndex, compIndex);
+                  }
+                },
+                onPanUpdate: (details) {
+                  if (!controller.isDrawing && !controller.isErasing) {
+                    if (isSelected && !layer.locked) {
+                      // Check lock status
+                      controller.updatePosition(
+                        compIndex,
+                        Offset(
+                          position.dx + details.delta.dx,
+                          position.dy + details.delta.dy,
+                        ),
+                        targetLayerIndex: layerIndex,
+                      );
+                    }
+                  }
+                },
+                child: Transform.rotate(
+                  angle: rotation * (3.14159265359 / 180),
+                  child: Container(
+                    decoration: isSelected
+                        ? BoxDecoration(
+                            border: Border.all(color: Colors.green, width: 2),
+                          )
+                        : null,
+                    child: component,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+
+        // Apply layer opacity
+        if (layer.opacity < 1.0) {
+          componentWidget = Opacity(
+            opacity: layer.opacity,
+            child: componentWidget,
+          );
+        }
+
+        layerWidgets.add(componentWidget);
+      }
+    }
+
+    return layerWidgets;
   }
 
   void _handlePan(Offset localPosition, CanvasController controller) {
