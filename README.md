@@ -1,6 +1,6 @@
 ## Flutter Advanced Canvas Editor
 
-A Flutter package for creating, editing, and exporting canvas-based artwork with advanced features.
+A Flutter package for creating, editing, and exporting canvas-based artwork with advanced features
 
 ## Preview
 
