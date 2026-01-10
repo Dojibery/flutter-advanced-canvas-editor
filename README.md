@@ -4,7 +4,7 @@ A Flutter package for creating, editing, and exporting canvas-based artwork with
 
 ## Preview
 
-<img src="https://raw.githubusercontent.com/Dojibery/flutter-advanced-canvas-editor/master/assets/images/preview-layers.png" width=300px height=500px>
+<img src="https://raw.githubusercontent.com/Dojibery/flutter-advanced-canvas-editor/master/assets/images/preview-layers.png" width=auto height=500px>
 
 
 ## Features
