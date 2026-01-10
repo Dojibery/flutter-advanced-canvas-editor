@@ -12,13 +12,13 @@ class CanvasWidget extends StatefulWidget {
   final CanvasController controller;
   final double? iconsSize;
 
-  const CanvasWidget(
-      {Key? key,
-      this.backgroundColor,
-      this.backgroundImage,
-      this.iconsSize = 30.0,
-      required this.controller})
-      : super(key: key);
+  const CanvasWidget({
+    super.key,
+    this.backgroundColor,
+    this.backgroundImage,
+    this.iconsSize = 30.0,
+    required this.controller,
+  });
 
   @override
   _CanvasWidgetState createState() => _CanvasWidgetState();
@@ -47,10 +47,6 @@ class _CanvasWidgetState extends State<CanvasWidget> {
     setState(() {
       backgroundImage = frameInfo.image;
     });
-  }
-
-  void _handleStateChanged(bool isDrawing, bool isErasing) {
-    setState(() {});
   }
 
   @override
