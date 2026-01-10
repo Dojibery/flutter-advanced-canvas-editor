@@ -1,4 +1,4 @@
-## 2.0.0
+## 2.0.1
 
 CHANGELOG:
 - **MAJOR FEATURE**: Added Photoshop-style layer system with full backwards compatibility
@@ -14,6 +14,7 @@ CHANGELOG:
   - Hidden/locked layers cannot be selected
   - New layer management API: `createLayer()`, `deleteLayer()`, `renameLayer()`, `setLayerVisibility()`, `setLayerOpacity()`, `setLayerLocked()`, `reorderLayer()`, `duplicateLayer()`, `mergeLayerDown()`, `clearLayer()`
   - Demo includes collapsible layer navbar with horizontal scrolling layer cards
+  - Image Preview
 - Made `onStateChanged` callback nullable for easier testing
 - Removed redundant debug logs throughout codebase
 - Added comprehensive test suite (53 tests) covering all layer functionality
