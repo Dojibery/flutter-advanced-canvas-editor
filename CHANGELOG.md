@@ -1,4 +1,4 @@
-## 1.2.0
+## 2.0.0
 
 CHANGELOG:
 - **MAJOR FEATURE**: Added Photoshop-style layer system with full backwards compatibility
