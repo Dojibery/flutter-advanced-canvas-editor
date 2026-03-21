@@ -1,26 +1,20 @@
 PODS:
   - Flutter (1.0.0)
-  - flutter_advanced_canvas_editor (0.0.1):
-    - Flutter
   - integration_test (0.0.1):
     - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
-  - flutter_advanced_canvas_editor (from `.symlinks/plugins/flutter_advanced_canvas_editor/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
-  flutter_advanced_canvas_editor:
-    :path: ".symlinks/plugins/flutter_advanced_canvas_editor/ios"
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_advanced_canvas_editor: 48a374d34e6eb7fa3dfdac0d7712d2d8cd9c5a07
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
 
 PODFILE CHECKSUM: 4f1c12611da7338d21589c0b2ecd6bd20b109694
