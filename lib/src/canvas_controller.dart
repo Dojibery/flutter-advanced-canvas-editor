@@ -5,10 +5,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'canvas_layer.dart';
 
+/// Called when the canvas drawing/erasing mode changes.
+///
+/// [isDrawing] is `true` while drawing mode is active.
+/// [isErasing] is `true` while erasing mode is active.
 typedef CanvasStateCallback = void Function(bool isDrawing, bool isErasing);
+
+/// Called after [CanvasController.exportCanvas] completes successfully.
+///
+/// [pngBytes] contains the raw PNG-encoded bytes of the exported canvas.
 typedef CanvasExportCallback = void Function(Uint8List pngBytes);
+
+/// Called after an undo operation is applied.
 typedef UndoCallback = void Function();
+
+/// Called after a redo operation is applied.
 typedef RedoCallback = void Function();
+
+/// Called when erasing mode is enabled via [CanvasController.enableErasing].
 typedef EraseCallback = void Function();
 
 /// Internal class for storing complete layer state snapshots for undo/redo
@@ -30,6 +44,49 @@ class _LayerSnapshot {
   }
 }
 
+/// Controls the state of a [CanvasWidget].
+///
+/// [CanvasController] manages all canvas content through a Photoshop-style
+/// layer system. Each layer can contain freehand drawing points and draggable
+/// widget components, and has independent visibility, opacity, and lock state.
+///
+/// ## Basic usage
+///
+/// ```dart
+/// final controller = CanvasController(
+///   (pngBytes) {
+///     // Handle exported PNG bytes
+///   },
+/// );
+/// ```
+///
+/// ## Layer management
+///
+/// ```dart
+/// // Create a new layer
+/// final layerId = controller.createLayer(name: 'Background');
+///
+/// // Switch the active layer
+/// controller.setCurrentLayer(0);
+///
+/// // Adjust opacity
+/// controller.setLayerOpacity(0, 0.5);
+/// ```
+///
+/// ## Drawing
+///
+/// ```dart
+/// controller.enableDrawing();  // enter draw mode
+/// controller.enableErasing();  // enter erase mode
+/// controller.disableDrawingErasing(); // exit both modes
+/// ```
+///
+/// ## Undo / redo
+///
+/// ```dart
+/// controller.undo();
+/// controller.redo();
+/// ```
 class CanvasController {
   // Layer-based storage
   final List<CanvasLayer> _layers = [];
@@ -626,7 +683,7 @@ class CanvasController {
 
       exportCanvasCallback(pngBytes);
     } catch (e) {
-      print('Error exporting canvas: $e');
+      debugPrint('Error exporting canvas: $e');
     }
   }
 }

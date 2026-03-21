@@ -1,29 +1,45 @@
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_advanced_canvas_editor/flutter_advanced_canvas_editor.dart';
-import 'package:flutter_advanced_canvas_editor/flutter_advanced_canvas_editor_platform_interface.dart';
-import 'package:flutter_advanced_canvas_editor/flutter_advanced_canvas_editor_method_channel.dart';
-import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-
-class MockFlutterAdvancedCanvasEditorPlatform
-    with MockPlatformInterfaceMixin
-    implements FlutterAdvancedCanvasEditorPlatform {
-
-  @override
-  Future<String?> getPlatformVersion() => Future.value('42');
-}
 
 void main() {
-  final FlutterAdvancedCanvasEditorPlatform initialPlatform = FlutterAdvancedCanvasEditorPlatform.instance;
+  group('CanvasController', () {
+    test('creates a default layer on init', () {
+      final controller = CanvasController((_) {});
+      expect(controller.layers.length, 1);
+      expect(controller.layers.first.name, 'Layer 1');
+    });
 
-  test('$MethodChannelFlutterAdvancedCanvasEditor is the default instance', () {
-    expect(initialPlatform, isInstanceOf<MethodChannelFlutterAdvancedCanvasEditor>());
+    test('can skip default layer creation', () {
+      final controller = CanvasController((_) {}, createDefaultLayer: false);
+      expect(controller.layers, isEmpty);
+    });
+
+    test('export callback is stored and invocable', () {
+      Uint8List? received;
+      final controller = CanvasController((bytes) => received = bytes);
+      controller.exportCanvasCallback(Uint8List.fromList([1, 2, 3]));
+      expect(received, isNotNull);
+      expect(received!.length, 3);
+    });
   });
 
-  test('getPlatformVersion', () async {
-    FlutterAdvancedCanvasEditor flutterAdvancedCanvasEditorPlugin = FlutterAdvancedCanvasEditor();
-    MockFlutterAdvancedCanvasEditorPlatform fakePlatform = MockFlutterAdvancedCanvasEditorPlatform();
-    FlutterAdvancedCanvasEditorPlatform.instance = fakePlatform;
+  group('CanvasLayer', () {
+    test('default values are correct', () {
+      final layer = CanvasLayer(id: 'id', name: 'Test');
+      expect(layer.visible, isTrue);
+      expect(layer.opacity, 1.0);
+      expect(layer.locked, isFalse);
+      expect(layer.components, isEmpty);
+    });
 
-    expect(await flutterAdvancedCanvasEditorPlugin.getPlatformVersion(), '42');
+    test('clone produces independent copy', () {
+      final layer = CanvasLayer(id: 'id', name: 'Original');
+      layer.components.add(const SizedBox());
+      final clone = layer.clone();
+      clone.components.clear();
+      expect(layer.components.length, 1);
+    });
   });
 }

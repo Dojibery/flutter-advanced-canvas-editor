@@ -30,7 +30,7 @@ class Painter extends CustomPainter {
       if (!layer.visible) continue; // Skip hidden layers
 
       final pointPaint = Paint()
-        ..color = Colors.black.withOpacity(layer.opacity) // Apply layer opacity
+        ..color = Color.fromRGBO(0, 0, 0, layer.opacity) // Apply layer opacity
         ..strokeCap = StrokeCap.round;
 
       for (Offset point in layer.drawingPoints) {

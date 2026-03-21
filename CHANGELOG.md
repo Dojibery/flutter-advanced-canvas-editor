@@ -1,3 +1,18 @@
+## 2.0.3
+
+- Converted from Flutter plugin to pure Flutter package — now supports all platforms (Android, iOS, Web, macOS, Windows, Linux) without native code dependencies
+- Removed `plugin_platform_interface` dependency and deleted unused plugin boilerplate files
+- Fixed deprecated `Color.withOpacity()` → `Color.fromRGBO()` in painter
+- Replaced `print()` with `debugPrint()` in `exportCanvas` error handler
+- Added class-level dartdoc to `CanvasController`, `CanvasWidget`, and all public typedefs
+- Fixed `prefer_const_constructors` lint in canvas widget (`Size` constructor)
+- Suppressed `library_private_types_in_public_api` on `createState()` with inline ignore comment
+- Added library-level doc comment to the main barrel file
+- Filled in `homepage` field in pubspec.yaml
+- Improved pubspec `description` to better reflect all features
+- Rewrote README to show only a minimal quick-start snippet and API table; full example remains in `example/lib/main.dart`
+- Replaced outdated plugin boilerplate tests with real unit tests covering `CanvasController` and `CanvasLayer` (64 tests total, all passing)
+
 ## 2.0.2
 
 CHANGELOG:

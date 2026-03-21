@@ -6,10 +6,37 @@ import 'package:flutter/services.dart';
 import 'canvas_controller.dart';
 import 'painter.dart';
 
+/// The main canvas widget that renders all layers and handles user interaction.
+///
+/// Place [CanvasWidget] in your widget tree and provide a [CanvasController]
+/// to control its state. The canvas supports:
+///
+/// - Freehand drawing and erasing (via pan gestures)
+/// - Drag-and-drop of widget components onto the canvas
+/// - Per-layer rendering with visibility and opacity support
+/// - PNG export via [CanvasController.exportCanvas]
+///
+/// ## Example
+///
+/// ```dart
+/// CanvasWidget(
+///   controller: myController,
+///   backgroundColor: Colors.white,
+///   backgroundImage: 'assets/bg.png', // optional
+/// )
+/// ```
 class CanvasWidget extends StatefulWidget {
-  final String? backgroundImage; // e.g. 'assets/images/road.png'
+  /// Optional asset path for a background image (e.g. `'assets/images/bg.png'`).
+  final String? backgroundImage;
+
+  /// Background fill colour. Defaults to grey when `null`.
   final Color? backgroundColor;
+
+  /// The controller that manages all canvas state.
   final CanvasController controller;
+
+  /// Size of the rotate/delete icon buttons shown on selected components.
+  /// Defaults to `30.0`.
   final double? iconsSize;
 
   const CanvasWidget({
@@ -21,6 +48,7 @@ class CanvasWidget extends StatefulWidget {
   });
 
   @override
+  // ignore: library_private_types_in_public_api
   _CanvasWidgetState createState() => _CanvasWidgetState();
 }
 
@@ -65,7 +93,7 @@ class _CanvasWidgetState extends State<CanvasWidget> {
             child: Stack(
               children: [
                 CustomPaint(
-                  size: Size(double.infinity, double.infinity),
+                  size: const Size(double.infinity, double.infinity),
                   painter: Painter(
                       backgroundColor: backgroundColor,
                       backgroundImage: backgroundImage,
