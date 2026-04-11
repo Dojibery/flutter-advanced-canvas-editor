@@ -60,6 +60,7 @@ For a complete working example with a layer panel, draggable items, and action b
 | `duplicateLayer(index)` | Duplicate a layer |
 | `mergeLayerDown(index)` | Merge a layer into the one below |
 | `addComponent(widget, offset)` | Place a widget on the canvas |
+| `scaleAllPositions(scaleX, scaleY)` | Rescale every component's position across all layers (e.g. after canvas resize) |
 
 ## Contributing
 

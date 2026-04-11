@@ -672,6 +672,25 @@ class CanvasController {
 
   // ==================== Export ====================
 
+  /// Scales every component's position across all layers by [scaleX] and [scaleY].
+  ///
+  /// Useful when the canvas widget is resized and component positions need to
+  /// be remapped to the new coordinate space. For example, if the canvas grows
+  /// from 400×300 to 800×600, call `scaleAllPositions(2.0, 2.0)`.
+  ///
+  /// Hidden and locked layers are included — positions are geometry, not content.
+  void scaleAllPositions(double scaleX, double scaleY) {
+    for (final layer in _layers) {
+      for (int i = 0; i < layer.positions.length; i++) {
+        layer.positions[i] = Offset(
+          layer.positions[i].dx * scaleX,
+          layer.positions[i].dy * scaleY,
+        );
+      }
+    }
+    onStateChanged?.call(_isDrawing, _isErasing);
+  }
+
   Future<void> exportCanvas() async {
     // first deselect all items because the picture will contains unnecessary thinks such as rotator, delete icon etc...
     deselectComponent();

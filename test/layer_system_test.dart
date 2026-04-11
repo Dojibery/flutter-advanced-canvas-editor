@@ -530,5 +530,57 @@ void main() {
         expect(controller.positions[0], originalPos); // Should not change
       });
     });
+
+    group('scaleAllPositions', () {
+      test('scales positions in a single layer', () {
+        controller.addComponent(Container(), const Offset(100, 50));
+
+        controller.scaleAllPositions(2.0, 3.0);
+
+        expect(controller.positions[0], const Offset(200, 150));
+      });
+
+      test('scales positions across multiple layers', () {
+        controller.addComponent(Container(), const Offset(10, 20), targetLayerIndex: 0);
+        controller.createLayer(name: 'Layer 2');
+        controller.addComponent(Container(), const Offset(30, 40), targetLayerIndex: 1);
+
+        controller.scaleAllPositions(0.5, 0.5);
+
+        expect(controller.layers[0].positions[0], const Offset(5, 10));
+        expect(controller.layers[1].positions[0], const Offset(15, 20));
+      });
+
+      test('scale of 1.0 leaves positions unchanged', () {
+        controller.addComponent(Container(), const Offset(42, 77));
+
+        controller.scaleAllPositions(1.0, 1.0);
+
+        expect(controller.positions[0], const Offset(42, 77));
+      });
+
+      test('scales positions on locked layers', () {
+        controller.addComponent(Container(), const Offset(100, 100));
+        controller.setLayerLocked(0, true);
+
+        controller.scaleAllPositions(2.0, 2.0);
+
+        expect(controller.positions[0], const Offset(200, 200));
+      });
+
+      test('scales positions on hidden layers', () {
+        controller.addComponent(Container(), const Offset(100, 100));
+        controller.setLayerVisibility(0, false);
+
+        controller.scaleAllPositions(2.0, 2.0);
+
+        expect(controller.layers[0].positions[0], const Offset(200, 200));
+      });
+
+      test('no-op on empty layers', () {
+        // No components — should not throw
+        expect(() => controller.scaleAllPositions(2.0, 2.0), returnsNormally);
+      });
+    });
   });
 }

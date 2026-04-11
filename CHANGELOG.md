@@ -1,3 +1,7 @@
+## 2.0.4
+
+- Added `scaleAllPositions(double scaleX, double scaleY)` to `CanvasController` — rescales every component's position across all layers by the given x/y ratios; useful when the canvas widget is resized and component coordinates need to be remapped to the new space. Hidden and locked layers are included. Fully backwards compatible (additive API).
+
 ## 2.0.3
 
 - Converted from Flutter plugin to pure Flutter package — now supports all platforms (Android, iOS, Web, macOS, Windows, Linux) without native code dependencies
