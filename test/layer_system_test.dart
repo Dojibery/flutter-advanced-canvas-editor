@@ -531,6 +531,355 @@ void main() {
       });
     });
 
+    group('Per-component icon colour', () {
+      test('addComponent stores iconColor on the layer', () {
+        controller.addComponent(Container(), Offset.zero, iconColor: Colors.blue);
+
+        expect(controller.layers[0].iconColors[0], Colors.blue);
+      });
+
+      test('addComponent stores null iconColor when omitted', () {
+        controller.addComponent(Container(), Offset.zero);
+
+        expect(controller.layers[0].iconColors[0], isNull);
+      });
+
+      test('iconColors list stays in sync after deleteComponent', () {
+        controller.addComponent(Container(), Offset.zero, iconColor: Colors.red);
+        controller.addComponent(Container(), const Offset(10, 10), iconColor: Colors.green);
+
+        controller.deleteComponent(0, targetLayerIndex: 0);
+
+        expect(controller.layers[0].iconColors.length, 1);
+        expect(controller.layers[0].iconColors[0], Colors.green);
+      });
+
+      test('iconColors are preserved by duplicateLayer', () {
+        controller.addComponent(Container(), Offset.zero, iconColor: Colors.orange);
+
+        controller.duplicateLayer(0);
+
+        expect(controller.layers[1].iconColors[0], Colors.orange);
+      });
+
+      test('iconColors are merged by mergeLayerDown', () {
+        controller.addComponent(Container(), Offset.zero, iconColor: Colors.red);
+        controller.createLayer(name: 'Layer 2');
+        controller.addComponent(Container(), const Offset(5, 5),
+            iconColor: Colors.blue, targetLayerIndex: 1);
+
+        controller.mergeLayerDown(1);
+
+        expect(controller.layers[0].iconColors.length, 2);
+        expect(controller.layers[0].iconColors[0], Colors.red);
+        expect(controller.layers[0].iconColors[1], Colors.blue);
+      });
+
+      test('iconColors are cleared by clearLayer', () {
+        controller.addComponent(Container(), Offset.zero, iconColor: Colors.purple);
+
+        controller.clearLayer(0);
+
+        expect(controller.layers[0].iconColors, isEmpty);
+      });
+
+      test('iconColors are cleared by clearAll', () {
+        controller.addComponent(Container(), Offset.zero, iconColor: Colors.teal);
+
+        controller.clearAll();
+
+        expect(controller.layers[0].iconColors, isEmpty);
+      });
+    });
+
+    group('Asset paths', () {
+      test('addComponent stores assetPath on the layer', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/images/carA.svg');
+
+        expect(controller.layers[0].assetPaths[0], 'assets/images/carA.svg');
+      });
+
+      test('addComponent stores null assetPath when omitted', () {
+        controller.addComponent(Container(), Offset.zero);
+
+        expect(controller.layers[0].assetPaths[0], isNull);
+      });
+
+      test('assetPaths list stays in sync after deleteComponent', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/images/carA.svg');
+        controller.addComponent(Container(), const Offset(10, 10),
+            assetPath: 'assets/images/carB.svg');
+
+        controller.deleteComponent(0, targetLayerIndex: 0);
+
+        expect(controller.layers[0].assetPaths.length, 1);
+        expect(controller.layers[0].assetPaths[0], 'assets/images/carB.svg');
+      });
+
+      test('assetPaths are preserved by duplicateLayer', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/images/carA.svg');
+
+        controller.duplicateLayer(0);
+
+        expect(controller.layers[1].assetPaths[0], 'assets/images/carA.svg');
+      });
+
+      test('assetPaths are merged by mergeLayerDown', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/images/carA.svg');
+        controller.createLayer(name: 'Layer 2');
+        controller.addComponent(Container(), const Offset(5, 5),
+            assetPath: 'assets/images/carB.svg', targetLayerIndex: 1);
+
+        controller.mergeLayerDown(1);
+
+        expect(controller.layers[0].assetPaths.length, 2);
+        expect(controller.layers[0].assetPaths[0], 'assets/images/carA.svg');
+        expect(controller.layers[0].assetPaths[1], 'assets/images/carB.svg');
+      });
+
+      test('assetPaths are cleared by clearLayer', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/images/carA.svg');
+
+        controller.clearLayer(0);
+
+        expect(controller.layers[0].assetPaths, isEmpty);
+      });
+
+      test('assetPaths are cleared by clearAll', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/images/carA.svg');
+
+        controller.clearAll();
+
+        expect(controller.layers[0].assetPaths, isEmpty);
+      });
+    });
+
+    group('hasContent', () {
+      test('false on fresh controller', () {
+        expect(controller.hasContent, isFalse);
+      });
+
+      test('true after adding a component', () {
+        controller.addComponent(Container(), Offset.zero);
+
+        expect(controller.hasContent, isTrue);
+      });
+
+      test('true after adding a drawing point', () {
+        controller.addDrawingPoint(const Offset(5, 5));
+
+        expect(controller.hasContent, isTrue);
+      });
+
+      test('false after clearAll removes everything', () {
+        controller.addComponent(Container(), Offset.zero);
+        controller.addDrawingPoint(const Offset(5, 5));
+
+        controller.clearAll();
+
+        expect(controller.hasContent, isFalse);
+      });
+
+      test('true when only one of multiple layers has content', () {
+        controller.createLayer(name: 'Layer 2');
+        controller.addComponent(Container(), Offset.zero, targetLayerIndex: 0);
+
+        expect(controller.hasContent, isTrue);
+      });
+    });
+
+    group('Serialisation (toJson / loadFromJson)', () {
+      test('toJson round-trips positions', () {
+        controller.addComponent(Container(), const Offset(10, 20),
+            assetPath: 'assets/car.svg');
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.layers[0].positions[0], const Offset(10, 20));
+      });
+
+      test('toJson round-trips rotations', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/car.svg');
+        controller.rotateComponent(0, targetLayerIndex: 0); // 45°
+        controller.rotateComponent(0, targetLayerIndex: 0); // 90°
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.layers[0].rotations[0], 90.0);
+      });
+
+      test('toJson round-trips iconColors', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/car.svg', iconColor: Colors.blue);
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        // Compare ARGB values: Colors.blue is a MaterialColor but the restored
+        // value is a plain Color — same bits, different runtime type.
+        expect(rebuilt.layers[0].iconColors[0]?.toARGB32(),
+            Colors.blue.toARGB32());
+      });
+
+      test('toJson round-trips null iconColor', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/car.svg');
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.layers[0].iconColors[0], isNull);
+      });
+
+      test('toJson round-trips drawing points', () {
+        controller.addDrawingPoint(const Offset(3, 7));
+        controller.addDrawingPoint(const Offset(11, 22));
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.layers[0].drawingPoints.length, 2);
+        expect(rebuilt.layers[0].drawingPoints[0], const Offset(3, 7));
+        expect(rebuilt.layers[0].drawingPoints[1], const Offset(11, 22));
+      });
+
+      test('toJson round-trips assetPaths', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/images/carA.svg');
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.layers[0].assetPaths[0], 'assets/images/carA.svg');
+      });
+
+      test('widgetBuilder is called with correct asset path', () {
+        const path = 'assets/images/carA.svg';
+        controller.addComponent(Container(), Offset.zero, assetPath: path);
+
+        final json = controller.toJson();
+        String? capturedPath;
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (p) {
+          capturedPath = p;
+          return Container();
+        });
+
+        expect(capturedPath, path);
+      });
+
+      test('components with null assetPath are skipped on load', () {
+        // Manually inject a null path by adding without assetPath.
+        // The component list will have one entry; assetPaths will be [null].
+        controller.addComponent(Container(), Offset.zero); // no assetPath
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        // Null-path component is skipped — layer has no components.
+        expect(rebuilt.layers[0].components, isEmpty);
+      });
+
+      test('layer metadata is preserved (name, visible, opacity, locked)', () {
+        controller.renameLayer(0, 'Scene');
+        controller.setLayerOpacity(0, 0.7);
+        controller.setLayerVisibility(0, false);
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.layers[0].name, 'Scene');
+        expect(rebuilt.layers[0].opacity, closeTo(0.7, 0.001));
+        expect(rebuilt.layers[0].visible, isFalse);
+      });
+
+      test('currentLayerIndex is preserved across serialisation', () {
+        controller.createLayer(name: 'Layer 2');
+        controller.setCurrentLayer(1);
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.currentLayerIndex, 1);
+      });
+
+      test('multiple layers are all restored', () {
+        controller.addComponent(Container(), const Offset(1, 2),
+            assetPath: 'assets/a.svg');
+        controller.createLayer(name: 'Layer 2');
+        controller.addComponent(Container(), const Offset(3, 4),
+            assetPath: 'assets/b.svg', targetLayerIndex: 1);
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.layers.length, 2);
+        expect(rebuilt.layers[0].assetPaths[0], 'assets/a.svg');
+        expect(rebuilt.layers[1].assetPaths[0], 'assets/b.svg');
+      });
+
+      test('undo history is cleared after loadFromJson', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/car.svg');
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        // Should have one component; undo should not remove it because
+        // history was wiped on load.
+        rebuilt.undo();
+        expect(rebuilt.layers[0].components.length, 1);
+      });
+
+      test('loadFromJson guarantees at least one layer on empty JSON layers', () {
+        final json = {'currentLayerIndex': 0, 'layers': []};
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.layers.length, 1);
+      });
+
+      test('hasContent is true after loadFromJson with components', () {
+        controller.addComponent(Container(), Offset.zero,
+            assetPath: 'assets/car.svg');
+
+        final json = controller.toJson();
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.hasContent, isTrue);
+      });
+
+      test('hasContent is false after loadFromJson with empty layers', () {
+        final json = controller.toJson(); // no components, no drawing points
+
+        final rebuilt = CanvasController((_) {}, createDefaultLayer: false);
+        rebuilt.loadFromJson(json, (_) => Container());
+
+        expect(rebuilt.hasContent, isFalse);
+      });
+    });
+
     group('scaleAllPositions', () {
       test('scales positions in a single layer', () {
         controller.addComponent(Container(), const Offset(100, 50));
