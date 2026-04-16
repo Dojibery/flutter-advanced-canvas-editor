@@ -1,3 +1,10 @@
+## 2.1.0
+
+- Added per-component icon colour via the new `CanvasComponentData` class and `iconColor` parameter on `addComponent()` (backwards compatible)
+- Added canvas serialisation: `toJson()`, `loadFromJson()`, and `hasContent`; each component's asset path is stored so the canvas can be fully restored from JSON
+- Fixed rotate/delete action buttons appearing in exported PNGs
+- Fixed Gradle/Java compatibility in the example app (Gradle 8.7, AGP 8.3.2, Kotlin 1.9.0)
+
 ## 2.0.4
 
 - Added `scaleAllPositions(double scaleX, double scaleY)` to `CanvasController` — rescales every component's position across all layers by the given x/y ratios; useful when the canvas widget is resized and component coordinates need to be remapped to the new space. Hidden and locked layers are included. Fully backwards compatible (additive API).

@@ -12,7 +12,9 @@ A Flutter package for creating, editing, and exporting canvas-based artwork with
 * Per-layer visibility, opacity, and lock controls
 * Freehand drawing and erasing
 * Drag-and-drop widget components onto the canvas
+* Per-component icon colour for the rotate / delete action buttons
 * Global undo / redo (snapshot-based, covers all layers)
+* Canvas serialisation — save to JSON and restore later, including component positions and asset paths
 * Export the canvas as a PNG image
 * Works on all platforms (Android, iOS, Web, macOS, Windows, Linux)
 
@@ -20,7 +22,7 @@ A Flutter package for creating, editing, and exporting canvas-based artwork with
 
 ```yaml
 dependencies:
-  flutter_advanced_canvas_editor: ^2.0.3
+  flutter_advanced_canvas_editor: 
 ```
 
 ## Quick start
@@ -44,13 +46,42 @@ For a complete working example with a layer panel, draggable items, and action b
 
 ## Core API
 
+### Drawing
+
 | Method | Description |
 |---|---|
-| `enableDrawing()` / `enableErasing()` | Enter draw / erase mode |
+| `enableDrawing()` | Enter freehand draw mode |
+| `enableErasing()` | Enter erase mode |
 | `disableDrawingErasing()` | Exit both modes |
-| `undo()` / `redo()` | Step through history |
+| `undo()` / `redo()` | Step through snapshot history |
 | `clearAll()` | Clear all unlocked layers |
-| `exportCanvas()` | Export to PNG (fires the export callback) |
+| `exportCanvas()` | Capture canvas as PNG and fire the export callback |
+
+### Components
+
+| Method | Description |
+|---|---|
+| `addComponent(widget, offset, {iconColor, assetPath})` | Place a widget on the active layer |
+| `scaleAllPositions(scaleX, scaleY)` | Rescale every component's position (e.g. after canvas resize) |
+
+Use `CanvasComponentData` as `Draggable` data to carry an optional `iconColor` and `assetPath` alongside the widget:
+
+```dart
+Draggable<CanvasComponentData>(
+  data: CanvasComponentData(
+    widget: SvgPicture.asset('assets/car.svg'),
+    iconColor: Colors.blue,
+    assetPath: 'assets/car.svg', // needed for serialisation
+  ),
+  feedback: ...,
+  child: ...,
+)
+```
+
+### Layer management
+
+| Method | Description |
+|---|---|
 | `createLayer({name, opacity, locked})` | Add a new layer, returns its ID |
 | `deleteLayer(index)` | Remove a layer |
 | `setCurrentLayer(index)` | Switch the active layer |
@@ -59,8 +90,25 @@ For a complete working example with a layer panel, draggable items, and action b
 | `setLayerLocked(index, bool)` | Lock / unlock a layer |
 | `duplicateLayer(index)` | Duplicate a layer |
 | `mergeLayerDown(index)` | Merge a layer into the one below |
-| `addComponent(widget, offset)` | Place a widget on the canvas |
-| `scaleAllPositions(scaleX, scaleY)` | Rescale every component's position across all layers (e.g. after canvas resize) |
+
+### Serialisation
+
+Save the full canvas state to JSON and restore it later — including all component positions, rotations, drawing points, and asset paths.
+
+```dart
+// Save
+final json = controller.toJson(); // Map<String, dynamic>
+final encoded = jsonEncode(json);
+await prefs.setString('canvas', encoded);
+
+// Restore
+final json = jsonDecode(await prefs.getString('canvas')!) as Map<String, dynamic>;
+controller.loadFromJson(json, (path) => SvgPicture.asset(path));
+```
+
+`loadFromJson` calls the `widgetBuilder` closure for every stored `assetPath` to reconstruct each component widget. Undo/redo history is cleared on restore.
+
+Use `controller.hasContent` to check whether the canvas has any components or drawing points before deciding whether to show a restore prompt.
 
 ## Contributing
 
