@@ -15,11 +15,22 @@ class CanvasLayer {
   /// Components (widgets) in this layer
   final List<Widget> components;
 
-  /// Positions for each component (parallel to components list)
+  /// Positions for each component (parallel to [components])
   final List<Offset> positions;
 
-  /// Rotation angles for each component in degrees (parallel to components list)
+  /// Rotation angles for each component in degrees (parallel to [components])
   final List<double> rotations;
+
+  /// Per-component colour used for the action icon buttons (rotate / delete)
+  /// shown when a component is selected. `null` means "use the canvas default".
+  /// Parallel to [components].
+  final List<Color?> iconColors;
+
+  /// Asset paths for each component (parallel to [components]).
+  /// Stores the Flutter asset path (e.g. 'assets/images/carA.svg') so the
+  /// layer state can be serialised and restored across widget remounts.
+  /// `null` for components that were not created from an asset path.
+  final List<String?> assetPaths;
 
   /// Freehand drawing points in this layer
   final List<Offset> drawingPoints;
@@ -39,6 +50,8 @@ class CanvasLayer {
     List<Widget>? components,
     List<Offset>? positions,
     List<double>? rotations,
+    List<Color?>? iconColors,
+    List<String?>? assetPaths,
     List<Offset>? drawingPoints,
     this.visible = true,
     this.opacity = 1.0,
@@ -46,6 +59,8 @@ class CanvasLayer {
   })  : components = components ?? [],
         positions = positions ?? [],
         rotations = rotations ?? [],
+        iconColors = iconColors ?? [],
+        assetPaths = assetPaths ?? [],
         drawingPoints = drawingPoints ?? [];
 
   /// Creates a copy of this layer with optional property overrides.
@@ -58,6 +73,8 @@ class CanvasLayer {
     List<Widget>? components,
     List<Offset>? positions,
     List<double>? rotations,
+    List<Color?>? iconColors,
+    List<String?>? assetPaths,
     List<Offset>? drawingPoints,
     bool? visible,
     double? opacity,
@@ -69,6 +86,8 @@ class CanvasLayer {
       components: components != null ? List.from(components) : List.from(this.components),
       positions: positions != null ? List.from(positions) : List.from(this.positions),
       rotations: rotations != null ? List.from(rotations) : List.from(this.rotations),
+      iconColors: iconColors != null ? List.from(iconColors) : List.from(this.iconColors),
+      assetPaths: assetPaths != null ? List.from(assetPaths) : List.from(this.assetPaths),
       drawingPoints: drawingPoints != null ? List.from(drawingPoints) : List.from(this.drawingPoints),
       visible: visible ?? this.visible,
       opacity: opacity ?? this.opacity,

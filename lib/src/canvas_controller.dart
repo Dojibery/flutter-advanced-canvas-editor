@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -223,7 +224,19 @@ class CanvasController {
     onStateChanged?.call(_isDrawing, _isErasing);
   }
 
-  void addComponent(Widget component, Offset position, {int? targetLayerIndex}) {
+  /// Adds a [component] widget at [position] on the target layer.
+  ///
+  /// [iconColor] is optional. When provided it is used as the colour for the
+  /// action icon buttons (rotate, delete) that appear when this component is
+  /// selected. If omitted, the canvas falls back to [Colors.black].
+  ///
+  /// [assetPath] is optional. When provided the asset path is stored alongside
+  /// the component so the layer state can be serialised and restored later.
+  void addComponent(Widget component, Offset position, {
+    int? targetLayerIndex,
+    Color? iconColor,
+    String? assetPath,
+  }) {
     final layerIndex = targetLayerIndex ?? _currentLayerIndex;
 
     // Prevent adding to locked layers
@@ -235,6 +248,8 @@ class CanvasController {
     _layers[layerIndex].components.add(component);
     _layers[layerIndex].positions.add(position);
     _layers[layerIndex].rotations.add(0.0);
+    _layers[layerIndex].iconColors.add(iconColor);
+    _layers[layerIndex].assetPaths.add(assetPath);
     onStateChanged?.call(_isDrawing, _isErasing);
   }
 
@@ -299,6 +314,8 @@ class CanvasController {
     layer.components.removeAt(index);
     layer.positions.removeAt(index);
     layer.rotations.removeAt(index);
+    if (index < layer.iconColors.length) layer.iconColors.removeAt(index);
+    if (index < layer.assetPaths.length) layer.assetPaths.removeAt(index);
 
     // Clear selection if deleted
     if (_selectedLayerIndex == layerIndex && _selectedComponentIndex == index) {
@@ -381,6 +398,8 @@ class CanvasController {
         layer.components.clear();
         layer.positions.clear();
         layer.rotations.clear();
+        layer.iconColors.clear();
+        layer.assetPaths.clear();
         layer.drawingPoints.clear();
       }
     }
@@ -604,6 +623,8 @@ class CanvasController {
       components: List.from(sourceLayer.components),
       positions: List.from(sourceLayer.positions),
       rotations: List.from(sourceLayer.rotations),
+      iconColors: List.from(sourceLayer.iconColors),
+      assetPaths: List.from(sourceLayer.assetPaths),
       drawingPoints: List.from(sourceLayer.drawingPoints),
       visible: sourceLayer.visible,
       opacity: sourceLayer.opacity,
@@ -629,6 +650,8 @@ class CanvasController {
     bottomLayer.components.addAll(topLayer.components);
     bottomLayer.positions.addAll(topLayer.positions);
     bottomLayer.rotations.addAll(topLayer.rotations);
+    bottomLayer.iconColors.addAll(topLayer.iconColors);
+    bottomLayer.assetPaths.addAll(topLayer.assetPaths);
     bottomLayer.drawingPoints.addAll(topLayer.drawingPoints);
 
     // Remove top layer
@@ -661,6 +684,8 @@ class CanvasController {
     layer.components.clear();
     layer.positions.clear();
     layer.rotations.clear();
+    layer.iconColors.clear();
+    layer.assetPaths.clear();
     layer.drawingPoints.clear();
 
     if (_selectedLayerIndex == index) {
@@ -692,8 +717,15 @@ class CanvasController {
   }
 
   Future<void> exportCanvas() async {
-    // first deselect all items because the picture will contains unnecessary thinks such as rotator, delete icon etc...
+    // Deselect all components so the rotate/delete action buttons are hidden
+    // before we capture the canvas.  We must then wait for that rebuild to
+    // finish painting before calling toImage(), otherwise the icons are still
+    // visible in the exported PNG.
     deselectComponent();
+    final frameCompleter = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => frameCompleter.complete());
+    await frameCompleter.future;
+
     try {
       RenderRepaintBoundary boundary = _canvasKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       ui.Image image = await boundary.toImage();
@@ -704,5 +736,126 @@ class CanvasController {
     } catch (e) {
       debugPrint('Error exporting canvas: $e');
     }
+  }
+
+  // ==================== Serialisation ====================
+
+  /// Returns `true` if any layer contains at least one component or drawing point.
+  bool get hasContent => _layers.any(
+        (layer) => layer.components.isNotEmpty || layer.drawingPoints.isNotEmpty,
+      );
+
+  /// Serialises the full canvas state to a JSON-compatible map.
+  ///
+  /// Only data that can be round-tripped (positions, rotations, colours,
+  /// drawing points, and asset paths) is included. Widget objects are
+  /// reconstructed from their [assetPaths] when [loadFromJson] is called.
+  Map<String, dynamic> toJson() {
+    return {
+      'currentLayerIndex': _currentLayerIndex,
+      'layers': _layers.map((layer) => {
+        'id': layer.id,
+        'name': layer.name,
+        'assetPaths': layer.assetPaths,
+        'positions': layer.positions.map((o) => [o.dx, o.dy]).toList(),
+        'rotations': layer.rotations,
+        'iconColors': layer.iconColors.map((c) => c?.toARGB32()).toList(),
+        'drawingPoints': layer.drawingPoints.map((o) => [o.dx, o.dy]).toList(),
+        'visible': layer.visible,
+        'opacity': layer.opacity,
+        'locked': layer.locked,
+      }).toList(),
+    };
+  }
+
+  /// Restores canvas state from a map previously produced by [toJson].
+  ///
+  /// [widgetBuilder] is called for every non-null asset path to reconstruct
+  /// the component widget.  For example:
+  /// ```dart
+  /// controller.loadFromJson(json, (path) => SvgPicture.asset(path));
+  /// ```
+  ///
+  /// The undo/redo history is cleared on restore.
+  void loadFromJson(
+    Map<String, dynamic> json,
+    Widget Function(String assetPath) widgetBuilder,
+  ) {
+    _layers.clear();
+    _undoHistory.clear();
+    _redoHistory.clear();
+    _selectedLayerIndex = -1;
+    _selectedComponentIndex = -1;
+
+    final layersList = json['layers'] as List<dynamic>;
+    int maxId = 0;
+
+    for (final layerData in layersList) {
+      final id = layerData['id'] as String;
+      final idNum = int.tryParse(id.replaceFirst('layer_', '')) ?? 0;
+      if (idNum >= maxId) maxId = idNum + 1;
+
+      final storedPaths = (layerData['assetPaths'] as List<dynamic>)
+          .map((e) => e as String?)
+          .toList();
+      final storedPositions = (layerData['positions'] as List<dynamic>)
+          .map((e) => Offset((e[0] as num).toDouble(), (e[1] as num).toDouble()))
+          .toList();
+      final storedRotations = (layerData['rotations'] as List<dynamic>)
+          .map((e) => (e as num).toDouble())
+          .toList();
+      final storedIconColors = (layerData['iconColors'] as List<dynamic>)
+          .map((e) => e != null ? Color(e as int) : null) // ignore: deprecated_member_use
+          .toList();
+      final storedDrawingPoints = (layerData['drawingPoints'] as List<dynamic>)
+          .map((e) => Offset((e[0] as num).toDouble(), (e[1] as num).toDouble()))
+          .toList();
+
+      final List<Widget> components = [];
+      final List<Offset> positions = [];
+      final List<double> rotations = [];
+      final List<Color?> iconColors = [];
+      final List<String?> assetPaths = [];
+
+      for (int i = 0; i < storedPaths.length; i++) {
+        final path = storedPaths[i];
+        if (path != null) {
+          components.add(widgetBuilder(path));
+          positions.add(storedPositions[i]);
+          rotations.add(i < storedRotations.length ? storedRotations[i] : 0.0);
+          iconColors.add(i < storedIconColors.length ? storedIconColors[i] : null);
+          assetPaths.add(path);
+        }
+      }
+
+      _layers.add(CanvasLayer(
+        id: id,
+        name: layerData['name'] as String,
+        components: components,
+        positions: positions,
+        rotations: rotations,
+        iconColors: iconColors,
+        assetPaths: assetPaths,
+        drawingPoints: storedDrawingPoints,
+        visible: layerData['visible'] as bool? ?? true,
+        opacity: (layerData['opacity'] as num?)?.toDouble() ?? 1.0,
+        locked: layerData['locked'] as bool? ?? false,
+      ));
+    }
+
+    if (maxId > _nextLayerId) _nextLayerId = maxId;
+
+    final requestedIndex = json['currentLayerIndex'] as int? ?? 0;
+    _currentLayerIndex = _layers.isEmpty
+        ? 0
+        : requestedIndex.clamp(0, _layers.length - 1);
+
+    // Guarantee at least one layer
+    if (_layers.isEmpty) {
+      _layers.add(CanvasLayer(id: _generateLayerId(), name: 'Layer 1'));
+      _currentLayerIndex = 0;
+    }
+
+    onStateChanged?.call(_isDrawing, _isErasing);
   }
 }

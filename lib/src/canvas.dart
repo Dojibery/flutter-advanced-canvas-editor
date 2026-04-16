@@ -6,13 +6,48 @@ import 'package:flutter/services.dart';
 import 'canvas_controller.dart';
 import 'painter.dart';
 
+/// Wraps a [Widget] with an optional per-component [iconColor] for use as
+/// drag data when dropping items onto a [CanvasWidget].
+///
+/// Pass a [CanvasComponentData] as the `data` of a [Draggable] to associate
+/// a colour with the component's action icon buttons (rotate, delete) at the
+/// moment it is created.  Plain [Widget] drag data is still accepted for
+/// backwards compatibility — those components get the default icon colour.
+///
+/// ## Example
+///
+/// ```dart
+/// Draggable<CanvasComponentData>(
+///   data: CanvasComponentData(widget: myIcon, iconColor: Colors.red),
+///   feedback: myIcon,
+///   child: myIcon,
+/// )
+/// ```
+class CanvasComponentData {
+  /// The widget to place on the canvas.
+  final Widget widget;
+
+  /// Colour used for the rotate / delete icon buttons when this component is
+  /// selected.  `null` lets the canvas use its built-in default colour.
+  final Color? iconColor;
+
+  /// Flutter asset path used to reconstruct the widget during deserialisation
+  /// (e.g. `'assets/images/carA.svg'`).  `null` for programmatically built
+  /// components that don't have a stable asset path.
+  final String? assetPath;
+
+  /// Creates a [CanvasComponentData].
+  const CanvasComponentData({required this.widget, this.iconColor, this.assetPath});
+}
+
 /// The main canvas widget that renders all layers and handles user interaction.
 ///
 /// Place [CanvasWidget] in your widget tree and provide a [CanvasController]
 /// to control its state. The canvas supports:
 ///
 /// - Freehand drawing and erasing (via pan gestures)
-/// - Drag-and-drop of widget components onto the canvas
+/// - Drag-and-drop of widget components onto the canvas (accepts both plain
+///   [Widget] and [CanvasComponentData] drag data)
 /// - Per-layer rendering with visibility and opacity support
 /// - PNG export via [CanvasController.exportCanvas]
 ///
@@ -99,13 +134,25 @@ class _CanvasWidgetState extends State<CanvasWidget> {
                       backgroundImage: backgroundImage,
                       layers: controller.layers),
                 ),
-                DragTarget<Widget>(
+                // Accepts both plain Widget drops (backwards compatible) and
+                // CanvasComponentData drops (carries an optional iconColor).
+                DragTarget<Object>(
                   onAcceptWithDetails: (details) {
                     RenderBox renderBox =
                         context.findRenderObject() as RenderBox;
                     Offset localOffset =
                         renderBox.globalToLocal(details.offset);
-                    controller.addComponent(details.data, localOffset);
+                    final data = details.data;
+                    if (data is CanvasComponentData) {
+                      controller.addComponent(
+                        data.widget,
+                        localOffset,
+                        iconColor: data.iconColor,
+                        assetPath: data.assetPath,
+                      );
+                    } else if (data is Widget) {
+                      controller.addComponent(data, localOffset);
+                    }
                   },
                   builder: (context, candidateData, rejectedData) {
                     return Container(
@@ -157,6 +204,12 @@ class _CanvasWidgetState extends State<CanvasWidget> {
           imageHeight = component.height;
         }
 
+        // Resolve icon colour: use the per-component value when set,
+        // otherwise fall back to black.
+        final iconColor = compIndex < layer.iconColors.length
+            ? (layer.iconColors[compIndex] ?? Colors.black)
+            : Colors.black;
+
         Widget componentWidget = Stack(
           children: [
             // Rotate button (only if selected and layer not locked)
@@ -165,7 +218,7 @@ class _CanvasWidgetState extends State<CanvasWidget> {
                 left: position.dx + imageWidth!,
                 top: position.dy - 30,
                 child: IconButton(
-                  color: Colors.black,
+                  color: iconColor,
                   icon: Icon(Icons.rotate_right, size: iconsSize),
                   onPressed: () {
                     controller.rotateComponent(compIndex, targetLayerIndex: layerIndex);
@@ -173,13 +226,13 @@ class _CanvasWidgetState extends State<CanvasWidget> {
                 ),
               ),
 
-            // Delete button (only if selected and layer not locked)
+            // Delete button — always red regardless of component type.
             if (isSelected && !layer.locked)
               Positioned(
                 left: position.dx - 30,
                 top: position.dy + imageHeight!,
                 child: IconButton(
-                  color: Colors.black,
+                  color: Colors.red,
                   icon: Icon(Icons.delete, size: iconsSize),
                   onPressed: () {
                     controller.deleteComponent(compIndex, targetLayerIndex: layerIndex);
